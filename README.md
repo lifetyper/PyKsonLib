@@ -3,7 +3,7 @@ two steps with 1 target temp&humidity for normal use.
 
 Coding Example:
 ```
-from PyKSON.models import KTHS_415BS
+from PyKsonLib.models import KTHS_415BS
 
 if __name__ == '__main__':
     p = KTHS_415BS("/dev/ttyUSB0")
