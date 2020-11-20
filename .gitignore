@@ -1,2 +1,4 @@
 
 /.idea/*
+/PyKsonLib.egg-info/*
+/dist/*

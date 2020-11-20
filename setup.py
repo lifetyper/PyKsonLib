@@ -27,7 +27,7 @@ setup(
 
     description='Serial control lib for Programmable Temperature&Humidity Chamer from www.kson.com.tw',
     long_description=long_description,
-
+    long_description_content_type="text/markdown",
     # The project's main homepage.
     url='https://github.com/lifetyper/PyKsonLib',
 
