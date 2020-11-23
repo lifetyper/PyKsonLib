@@ -67,6 +67,7 @@ class KTHS_415BS:
         if pgm_count >= 1:
             logging.debug("PGM count:{}".format(pgm_count))
             self.pgm_list = re.split(',')[5:-1]
+            return self.pgm_list
         else:
             logging.debug("PGM count zero!")
             return None
