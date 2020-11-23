@@ -27,7 +27,7 @@ class KTHS_415BS:
 
     def get_status(self):
         self.port.write('STX,0,1,A,END'.encode())
-        re = self.port.read(100).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("check status return:\n{}".format(re))
         re = re.split(",")[4:-1]
         self.type, self.status, self.temp_pv, self.humi_pv, self.temp_sv, self.humi_sv = re[0:6]
@@ -38,19 +38,19 @@ class KTHS_415BS:
 
     def delete_pgm(self, pgm_name: str):
         self.port.write('STX,0,1,D,{},END'.format(pgm_name).encode())
-        re = self.port.read(100).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("delete program return:\n{}".format(re))
         return re == 'STX,1,0,D,END'
 
     def stop(self):
         self.port.write('STX,0,1,E,END'.encode())
-        re = self.port.read(100).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("stop return:\n{}".format(re))
         return re == 'STX,1,0,E,END'
 
     def pgm_jump_section(self, section):
         self.port.write('STX,0,1,J,{},END'.format(section).encode())
-        re = self.port.read(100).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("Jump section {} return:\n{}".format(section, re))
         return re == 'STX,1,0,J,END'
 
@@ -61,7 +61,7 @@ class KTHS_415BS:
 
     def list_all_pgm(self):
         self.port.write('STX,0,1,O,END'.encode())
-        re = self.port.read(1000).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("Get all pgm return:\n{}".format(re))
         pgm_count = int(re.split(',')[4])
         if pgm_count >= 1:
@@ -73,19 +73,19 @@ class KTHS_415BS:
 
     def load_pgm(self, pgm_name: str):
         self.port.write('STX,0,2,L,{},END'.format(pgm_name).encode())
-        re = self.port.read(100).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("Load program {} return:\n{}".format(pgm_name, re))
         return re == 'STX,1,0,L,END'
 
     def rename_pgm(self, src_pgm: str, dst_pgm: str):
         self.port.write('STX,0,1,N,{},{},END'.format(src_pgm, dst_pgm).encode())
-        re = self.port.read(100).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("Rename program {} to {} return:\n{}".format(src_pgm, dst_pgm, re))
         return re == 'STX,1,0,N,END'
 
     def view_pgm(self, pgm_name: str):
         self.port.write('STX,0,1,R,{},END'.format(pgm_name).encode())
-        re = self.port.read(1000).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("View program {} return:\n{}".format(pgm_name, re))
         re = re.split(',')[5:-1]
         pgm_content = dict()
@@ -100,7 +100,7 @@ class KTHS_415BS:
         self.get_status()
         if self.status_dict[self.status] == 'STOPPED':
             self.port.write('STX,0,1,T,END'.encode())
-            re = self.port.read(100).decode().replace(" ", "")
+            re = self.port.read_until('END').decode().replace(" ", "")
             logging.debug("Run loaded program return:\n{}".format(re))
             return re == 'STX,1,0,T,END'
         else:
@@ -111,7 +111,7 @@ class KTHS_415BS:
         self.get_status()
         if self.status_dict[self.status] == 'STOPPED':
             self.port.write('STX,0,1,S,{},END'.format(pgm_name).encode())
-            re = self.port.read(100).decode().replace(" ", "")
+            re = self.port.read_until('END').decode().replace(" ", "")
             logging.debug("Execute program return:\n{}".format(re))
             return re == 'STX,1,0,S,END'
         else:
@@ -130,7 +130,7 @@ class KTHS_415BS:
                                                                    target_hour=target_hour, target_min=target_min)
         print(cmd_str)
         self.port.write(cmd_str.encode())
-        re = self.port.read(100).decode().replace(" ", "")
+        re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("Write Program return:\n{}".format(re))
         return re == "STX,1,0,W,END"
 
