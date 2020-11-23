@@ -73,7 +73,7 @@ class KTHS_415BS:
             return None
 
     def load_pgm(self, pgm_name: str):
-        self.port.write('STX,0,2,L,{},END'.format(pgm_name).encode())
+        self.port.write('STX,0,1,L,{},END'.format(pgm_name).encode())
         re = self.port.read_until('END').decode().replace(" ", "")
         logging.debug("Load program {} return:\n{}".format(pgm_name, re))
         return re == 'STX,1,0,L,END'
