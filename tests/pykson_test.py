@@ -5,7 +5,8 @@ if __name__ == '__main__':
     if not p.power_status:
         print("not power on")
     p.get_status()
-    # p_list=p.list_all_pgm()
+    p_list = p.list_all_pgm()
     p.load_pgm('-40.pgm')
     p.get_status()
-    # p.stop()
+    p.stop()
+    p.close()

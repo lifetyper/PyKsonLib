@@ -1,5 +1,6 @@
 # coding=utf-8
 import logging
+from threading import Semaphore
 
 import serial
 
@@ -25,18 +26,23 @@ class KTHS_415BS:
                            '13': 'C1 compressor error', '14': 'C2 compressor error', '15': 'Gas/Water pressure',
                            '16': 'C1 compressor over load', '17': 'C2 compressor over load', '18': 'Fan over load'}
         self.pgm_list = list()
+        self.sem = Semaphore()
         self.power_status = self.check_power_status()
 
     def check_power_status(self):
+        self.sem.acquire()
         self.port.write('STX,0,1,A,END'.encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         if len(re) <= 10:
             return False
         return True
 
     def get_status(self):
+        self.sem.acquire()
         self.port.write('STX,0,1,A,END'.encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("check status return:\n{}".format(re))
         re = re.split(",")[4:-1]
         self.type, self.status, self.temp_pv, self.humi_pv, self.temp_sv, self.humi_sv = re[0:6]
@@ -46,20 +52,26 @@ class KTHS_415BS:
         return True
 
     def delete_pgm(self, pgm_name: str):
+        self.sem.acquire()
         self.port.write('STX,0,1,D,{},END'.format(pgm_name).encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("delete program return:\n{}".format(re))
         return re == 'STX,1,0,D,END'
 
     def stop(self):
+        self.sem.acquire()
         self.port.write('STX,0,1,E,END'.encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("stop return:\n{}".format(re))
         return re == 'STX,1,0,E,END'
 
     def pgm_jump_section(self, section):
+        self.sem.acquire()
         self.port.write('STX,0,1,J,{},END'.format(section).encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("Jump section {} return:\n{}".format(section, re))
         return re == 'STX,1,0,J,END'
 
@@ -69,8 +81,10 @@ class KTHS_415BS:
         return self.pgm_jump_section('N')
 
     def list_all_pgm(self):
+        self.sem.acquire()
         self.port.write('STX,0,1,O,END'.encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("Get all pgm return:\n{}".format(re))
         pgm_count = int(re.split(',')[4])
         if pgm_count >= 1:
@@ -82,26 +96,31 @@ class KTHS_415BS:
             return None
 
     def load_pgm(self, pgm_name: str):
+        self.sem.acquire()
         self.port.write('STX,0,1,L,{},END'.format(pgm_name).encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("Load program {} return:\n{}".format(pgm_name, re))
         return re == 'STX,1,0,L,END'
 
     def rename_pgm(self, src_pgm: str, dst_pgm: str):
+        self.sem.acquire()
         self.port.write('STX,0,1,N,{},{},END'.format(src_pgm, dst_pgm).encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("Rename program {} to {} return:\n{}".format(src_pgm, dst_pgm, re))
         return re == 'STX,1,0,N,END'
 
     def view_pgm(self, pgm_name: str):
+        self.sem.acquire()
         self.port.write('STX,0,1,R,{},END'.format(pgm_name).encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("View program {} return:\n{}".format(pgm_name, re))
         re = re.split(',')[5:-1]
         pgm_content = dict()
         pgm_content['cycle'], pgm_content['step'], pgm_content['high_limit'], pgm_content['low_limit'] = re[:4]
         steps = re[4:]
-        print(pgm_content['step'])
         # chunk the steps in to sections by size 8
         pgm_content['steps'] = [steps[x * 8:(x + 1) * 8] for x in range(0, int(pgm_content['step']))]
         return pgm_content
@@ -109,8 +128,10 @@ class KTHS_415BS:
     def run_loaded_pgm(self):
         self.get_status()
         if self.status_dict[self.status] == 'STOPPED':
+            self.sem.acquire()
             self.port.write('STX,0,1,T,END'.encode())
             re = self.port.read_until('END').decode().replace(" ", "")
+            self.sem.release()
             logging.debug("Run loaded program return:\n{}".format(re))
             return re == 'STX,1,0,T,END'
         else:
@@ -120,8 +141,10 @@ class KTHS_415BS:
     def execute_pgm(self, pgm_name: str):
         self.get_status()
         if self.status_dict[self.status] == 'STOPPED':
+            self.sem.acquire()
             self.port.write('STX,0,1,S,{},END'.format(pgm_name).encode())
             re = self.port.read_until('END').decode().replace(" ", "")
+            self.sem.release()
             logging.debug("Execute program return:\n{}".format(re))
             return re == 'STX,1,0,S,END'
         else:
@@ -138,9 +161,10 @@ class KTHS_415BS:
                   '150,0,0,1,0,0,0,0,-50,0,0,1,0,0,0,0,END'.format(pgm_name=pgm_name, target_temp=target_temp,
                                                                    high_limit=100, low_limit=0, target_humi=target_humi,
                                                                    target_hour=target_hour, target_min=target_min)
-        print(cmd_str)
+        self.sem.acquire()
         self.port.write(cmd_str.encode())
         re = self.port.read_until('END').decode().replace(" ", "")
+        self.sem.release()
         logging.debug("Write Program return:\n{}".format(re))
         return re == "STX,1,0,W,END"
 
