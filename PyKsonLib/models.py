@@ -14,8 +14,6 @@ class KTHS_415BS:
         logging.basicConfig(level=logging.DEBUG)
         self.port = serial.Serial(serial_port, baudrate=19200, parity=serial.PARITY_NONE,
                                   timeout=1)
-        self.type = self.status = self.temp_pv = self.humi_pv = self.temp_sv = self.humi_sv = '0'
-        self.pgm_name = self.cycle = self.step = self.hour = self.min = self.error = '0'
         self.status_dict = {'0': "STOPPED", '1': "RUNNING", '2': "RESERVED"}
         self.error_dict = {'0': 'No Error', '1': 'Temp sensor error', '2': 'Humid sensor error',
                            '3': 'Temp&Humid converter error',
@@ -26,6 +24,7 @@ class KTHS_415BS:
                            '13': 'C1 compressor error', '14': 'C2 compressor error', '15': 'Gas/Water pressure',
                            '16': 'C1 compressor over load', '17': 'C2 compressor over load', '18': 'Fan over load'}
         self.pgm_list = list()
+        self.pv = dict()
         self.sem = Semaphore()
         self.power_status = self.check_power_status()
 
@@ -45,10 +44,16 @@ class KTHS_415BS:
         self.sem.release()
         logging.debug("check status return:\n{}".format(re))
         re = re.split(",")[4:-1]
-        self.type, self.status, self.temp_pv, self.humi_pv, self.temp_sv, self.humi_sv = re[0:6]
-        self.pgm_name, self.cycle, self.step, self.hour, self.min, self.error = re[6:]
-        logging.info("Current Running Status:{}\n".format(self.status_dict[self.status]))
-        logging.info("Current Error Status:{}\n".format(self.error_dict[self.error]))
+        self.pv['type'], self.pv['status'], self.pv['temperature'], self.pv['humidity'], self.pv['temp_sv'], self.pv[
+            'humi_sv'] = re[0:6]
+
+        self.pv['pgm_name'], self.pv['cycle'], self.pv['step'], self.pv['hour'], self.pv['min'], self.pv['error'] = re[
+                                                                                                                    6:]
+
+        self.pv['status'] = self.status_dict[self.pv['status']]
+        self.pv['error'] = self.error_dict[self.pv['error']]
+        logging.debug("Current Running Status:{}\n".format(self.pv['status']))
+        logging.debug("Current Error Status:{}\n".format(self.pv['error']))
         return True
 
     def delete_pgm(self, pgm_name: str):
@@ -96,12 +101,16 @@ class KTHS_415BS:
             return None
 
     def load_pgm(self, pgm_name: str):
-        self.sem.acquire()
-        self.port.write('STX,0,1,L,{},END'.format(pgm_name).encode())
-        re = self.port.read_until('END').decode().replace(" ", "")
-        self.sem.release()
-        logging.debug("Load program {} return:\n{}".format(pgm_name, re))
-        return re == 'STX,1,0,L,END'
+        self.get_status()
+        if self.pv['status'] == 'STOPPED':
+            self.sem.acquire()
+            self.port.write('STX,0,1,L,{},END'.format(pgm_name).encode())
+            re = self.port.read_until('END').decode().replace(" ", "")
+            self.sem.release()
+            logging.debug("Load program {} return:\n{}".format(pgm_name, re))
+            return re == 'STX,1,0,L,END'
+        else:
+            return False
 
     def rename_pgm(self, src_pgm: str, dst_pgm: str):
         self.sem.acquire()
@@ -127,7 +136,7 @@ class KTHS_415BS:
 
     def run_loaded_pgm(self):
         self.get_status()
-        if self.status_dict[self.status] == 'STOPPED':
+        if self.pv['status'] == 'STOPPED':
             self.sem.acquire()
             self.port.write('STX,0,1,T,END'.encode())
             re = self.port.read_until('END').decode().replace(" ", "")
@@ -140,7 +149,7 @@ class KTHS_415BS:
 
     def execute_pgm(self, pgm_name: str):
         self.get_status()
-        if self.status_dict[self.status] == 'STOPPED':
+        if self.pv['status'] == 'STOPPED':
             self.sem.acquire()
             self.port.write('STX,0,1,S,{},END'.format(pgm_name).encode())
             re = self.port.read_until('END').decode().replace(" ", "")
