@@ -1,5 +1,6 @@
 # coding=utf-8
 import logging
+
 import serial
 
 """
@@ -24,6 +25,14 @@ class KTHS_415BS:
                            '13': 'C1 compressor error', '14': 'C2 compressor error', '15': 'Gas/Water pressure',
                            '16': 'C1 compressor over load', '17': 'C2 compressor over load', '18': 'Fan over load'}
         self.pgm_list = list()
+        self.power_status = self.check_power_status()
+
+    def check_power_status(self):
+        self.port.write('STX,0,1,A,END'.encode())
+        re = self.port.read_until('END').decode().replace(" ", "")
+        if len(re) <= 10:
+            return False
+        return True
 
     def get_status(self):
         self.port.write('STX,0,1,A,END'.encode())
@@ -34,7 +43,7 @@ class KTHS_415BS:
         self.pgm_name, self.cycle, self.step, self.hour, self.min, self.error = re[6:]
         logging.info("Current Running Status:{}\n".format(self.status_dict[self.status]))
         logging.info("Current Error Status:{}\n".format(self.error_dict[self.error]))
-        return None
+        return True
 
     def delete_pgm(self, pgm_name: str):
         self.port.write('STX,0,1,D,{},END'.format(pgm_name).encode())
