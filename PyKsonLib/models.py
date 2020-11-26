@@ -15,14 +15,6 @@ class KTHS_415BS:
         self.port = serial.Serial(serial_port, baudrate=19200, parity=serial.PARITY_NONE,
                                   timeout=1)
         self.status_dict = {'0': "STOPPED", '1': "RUNNING", '2': "RESERVED"}
-        self.error_dict = {'0': 'No Error', '1': 'Temp sensor error', '2': 'Humid sensor error',
-                           '3': 'Temp&Humid converter error',
-                           '4': 'Communication off', '5': 'Internal over high temp', '6': 'Internal over low temp',
-                           '7': 'Low humid sensor error', '8': 'Environment over high temp',
-                           '9': 'Environment sensor error',
-                           '10': 'Low humid converter error', '11': 'External over high temp', '12': 'Water shortage',
-                           '13': 'C1 compressor error', '14': 'C2 compressor error', '15': 'Gas/Water pressure',
-                           '16': 'C1 compressor over load', '17': 'C2 compressor over load', '18': 'Fan over load'}
         self.pgm_list = list()
         self.pv = dict()
         self.sem = Semaphore()
@@ -51,7 +43,6 @@ class KTHS_415BS:
                                                                                                                     6:]
 
         self.pv['status'] = self.status_dict[self.pv['status']]
-        self.pv['error'] = self.error_dict[self.pv['error']]
         logging.debug("Current Running Status:{}\n".format(self.pv['status']))
         logging.debug("Current Error Status:{}\n".format(self.pv['error']))
         return True
